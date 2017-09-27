@@ -1,0 +1,3051 @@
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  1 LOAD CORE & MATH
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+	Option Explicit
+	Randomize
+
+	Const BallSize = 51
+	Const BallMass = 1.2
+	Const cGameName = "PizzaTime"
+
+	LoadCoreFiles
+
+	Sub LoadCoreFiles
+		On Error Resume Next
+		ExecuteGlobal GetTextFile("core.vbs")
+		If Err Then MsgBox "Can't open core.vbs"
+		ExecuteGlobal GetTextFile("controller.vbs")
+		If Err Then MsgBox "Can't open controller.vbs"
+		On Error Goto 0
+	End Sub
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Math Functions
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Const Pi = 3.1415927
+
+	Function dSin(degrees)
+		dsin = sin(degrees * Pi/180)
+	End Function
+
+	Function dCos(degrees)
+		dcos = cos(degrees * Pi/180)
+	End Function
+
+	Function RndNum(min, max)
+		RndNum = Int(Rnd() * (max-min + 1) ) + min ' Sets a random number between min and max
+	End Function
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'   Overall Constants / Global Variables / Table Init
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+	' Define any Constants
+	Const TableName = "PizzaTime"
+	Const myVersion = "0.1"
+	Const MaxPlayers = 4
+	Const MaxMultiplier = 6 'limit to 6x in this game
+	Const MaxMultiballs = 5  ' max number of balls during multiballs
+
+	' Define Global Variables
+	Dim PlayersPlayingGame
+	Dim CurrentPlayer
+	Dim Credits
+	Dim BonusPoints(4)
+	Dim BonusHeldPoints(4)
+	Dim BonusMultiplier(4)
+	Dim bBonusHeld
+	Dim BallsRemaining(4)
+	Dim ExtraBallsAwards(4)
+	Dim Score(4)
+	Dim HighScore(4)
+	Dim HighScoreName(4)
+	Dim Jackpot
+	Dim SuperJackpot
+	Dim Tilt
+	Dim TiltSensitivity
+	Dim Tilted
+	Dim TotalGamesPlayed
+	Dim mBalls2Eject
+	Dim SkillshotValue(4)
+	Dim bAutoPlunger
+	Dim bInstantInfo
+	Dim bromconfig
+	Dim bAttractMode
+
+	' Define Game Control Variables
+	Dim LastSwitchHit
+	Dim BallsOnPlayfield
+	Dim BallsInLock(4)
+	Dim BallsInHole
+
+	' Define Game Flags
+	Dim bFreePlay
+	Dim bGameInPlay
+	Dim bOnTheFirstBall
+	Dim bBallInPlungerLane
+	Dim bBallSaverActive
+	Dim bBallSaverReady
+	Dim bMultiBallMode
+	Dim bMusicOn
+	Dim bSkillshotReady
+	Dim bExtraBallWonThisBall
+	Dim bJustStarted
+	Dim plungerIM 'used mostly as an autofire plunger
+	Dim DisableInstantInfo
+	Dim DisableFlippers
+
+	Sub Table1_Init()
+		If speedcurrent = "Slow" Then
+		table1.SlopeMin = 5
+		table1.SlopeMax = 5
+		End If
+		If speedcurrent = "Flow" Then
+		table1.SlopeMin = 8
+		table1.SlopeMax = 8
+		End If
+		LoadEM
+		Dim i
+		Randomize
+		'Impulse Plunger as autoplunger
+		Const IMPowerSetting = 45 ' Plunger Power
+		Const IMTime = 1.1        ' Time in seconds for Full Plunge
+		Set plungerIM = New cvpmImpulseP
+		With plungerIM
+			.InitImpulseP swplunger, IMPowerSetting, IMTime
+			.Random 1.5
+			.InitExitSnd SoundFX("fx_kicker", DOFContactors), SoundFX("fx_solenoid", DOFContactors)
+			.CreateEvents "plungerIM"
+		End With
+		Loadhs
+		DMD_Init
+		Loadbpg
+		bAttractMode = False
+		bOnTheFirstBall = False
+		bBallInPlungerLane = False
+		bBallSaverActive = False
+		bBallSaverReady = False
+		bMultiBallMode = False
+		bGameInPlay = False
+		bAutoPlunger = False
+		bMusicOn = True
+		DisableInstantInfo = false
+		BallsOnPlayfield = 0
+		For i = 0 to 4
+		BallsInLock(i) = 0
+		Next
+		BallsInHole = 0
+		LastSwitchHit = ""
+		Tilt = 0
+		Saves = 0
+		Drains = 0
+		TiltSensitivity = 6
+		Tilted = False
+		bBonusHeld = False
+		bJustStarted = True
+		bInstantInfo = False
+		bromconfig = False
+		DisableFlippers = False
+		RomConfigTimer.Enabled = False
+		GiOff
+		StartAttractMode
+	End Sub
+
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  Keys & Flippers
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+	Sub Table1_KeyDown(ByVal keycode)
+		If Keycode = AddCreditKey Then
+			Credits = Credits + 1
+			DOF 140, DOFOn
+			If(Tilted = False) Then
+				DMDFlush
+				DMD "black.png", "CREDITS " &credits, "PRESS START",  2000
+				PlaySound "fx_coin"
+				If NOT bGameInPlay Then ShowTableInfo
+			End If
+		End If
+
+		If keycode = PlungerKey Then
+			PlaySound "fx_plungerpull"
+			Plunger.Pullback
+		End If
+
+		If hsbModeActive Then
+			EnterHighScoreKey(keycode)
+			Exit Sub
+		End If
+
+		If inconfig = True Then
+			ConfigKey(keycode)
+			Exit Sub
+		End If
+
+		If bGameInPlay Then
+			If NOT Tilted Then
+				If keycode = LeftTiltKey Then Nudge 90, 6:PlaySound SoundFX("fx_nudge",0), 0, 1, -0.1, 0.25:CheckTilt
+				If keycode = RightTiltKey Then Nudge 270, 6:PlaySound SoundFX("fx_nudge",0), 0, 1, 0.1, 0.25:CheckTilt
+				If keycode = CenterTiltKey Then Nudge 0, 7:PlaySound SoundFX("fx_nudge",0), 0, 1, 1, 0.25:CheckTilt
+
+				If keycode = LeftFlipperKey Then 
+					SolLFlipper 1
+					SolULFlipper 1
+					If DisableInstantInfo = false then
+						InstantInfoTimer.Enabled = True
+					End If
+				End If
+				If keycode = RightFlipperKey Then
+					SolRFlipper 1
+					If DisableInstantInfo = false then
+						InstantInfoTimer.Enabled = True
+					End If
+				End If
+
+				If keycode = StartGameKey Then
+					If((PlayersPlayingGame <MaxPlayers) AND(bOnTheFirstBall = True) ) Then
+						If(gamemodecurrent = "True") Then
+							PlayersPlayingGame = PlayersPlayingGame + 1
+							TotalGamesPlayed = TotalGamesPlayed + 1
+							DMDFlush
+							DMD "black.png", " ", PlayersPlayingGame & " PLAYERS",  500
+							PlaySound "so_fanfare1"
+						Else
+							If(Credits> 0) then
+								PlayersPlayingGame = PlayersPlayingGame + 1
+								TotalGamesPlayed = TotalGamesPlayed + 1
+								Credits = Credits - 1
+								If Credits < 1 Then DOF 140, DOFOff
+								DMDFlush
+								DMD "black.png", " ", PlayersPlayingGame & " PLAYERS",  500
+								PlaySound "so_fanfare1"
+							Else
+								' Not Enough Credits to start a game.
+								DMDFlush
+								DMD "black.png", "CREDITS " &credits, "INSERT COIN",  500
+								PlaySound "so_nocredits"
+							End If
+						End If
+					End If
+				End If
+			End If
+		Else
+		'game not in play yet
+			If NOT Tilted Then
+				If keycode = LeftFlipperKey Then SolLFlipper 0:SolULFlipper 0:RomConfigTimer.Enabled = True:dmdintroloop
+				If keycode = RightFlipperKey Then SolRFlipper 0:RomConfigTimer.Enabled = True:dmdintroloop
+				If inconfig = False Then
+					If keycode = StartGameKey Then
+						If(gamemodecurrent = "True") Then
+							If(BallsOnPlayfield = 0) Then
+								ResetForNewGame()
+							End If
+						Else
+							If(Credits> 0) Then
+								If(BallsOnPlayfield = 0) Then
+									Credits = Credits - 1
+									If Credits < 1 Then DOF 140, DOFOff
+									ResetForNewGame()
+								End If
+							Else
+								' Not Enough Credits to start a game.
+								DOF 140, DOFOff
+								DMDFlush
+								DMD "black.png", "CREDITS " &credits, "INSERT COIN",  500
+								ShowTableInfo
+							End If
+						End If
+					End If
+				Else
+				ConfigKey(keycode)
+				End If
+			End If
+		End If
+	End Sub
+
+
+	Sub Table1_KeyUp(ByVal keycode)
+
+		If keycode = PlungerKey Then
+			PlaySound "fx_plunger"
+			Plunger.Fire
+		End If
+
+		If hsbModeActive Then
+			Exit Sub
+		End If
+
+		If bGameInPLay Then
+			If keycode = LeftFlipperKey Then
+				SolLFlipper 0
+				SolULFlipper 0
+				If DisableInstantInfo = false Then
+					InstantInfoTimer.Enabled = False
+				End If
+				If bInstantInfo Then
+					DMDScoreNow
+					bInstantInfo = False
+				End If
+			End If
+			If keycode = RightFlipperKey Then
+				SolRFlipper 0
+				If DisableInstantInfo = false Then
+					InstantInfoTimer.Enabled = False
+				End If
+				If bInstantInfo Then
+					DMDScoreNow
+					bInstantInfo = False
+				End If
+			End If
+		Else
+			If keycode = LeftFlipperKey Then SolLFlipper 0:SolULFlipper 0:RomConfigTimer.Enabled = False
+			If keycode = RightFlipperKey Then SolRFlipper 0:RomConfigTimer.Enabled = False
+		End If
+	End Sub
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Flippers Subs
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Sub SolLFlipper(Enabled)
+		If DisableFlippers = False Then
+			If Enabled Then
+				PlaySound SoundFXDOF("fx_flipperup", 101, DOFOn, DOFFlippers), 0, 1, -0.05, 0.15
+				LeftFlipper.RotateToEnd
+				If bSkillshotReady = False Then
+					RotateLaneLightsLeft
+				End If
+			Else
+				PlaySound SoundFXDOF("fx_flipperdown", 101, DOFOff, DOFFlippers), 0, 1, -0.05, 0.15
+				LeftFlipper.RotateToStart
+			End If
+		End If
+	End Sub
+
+
+	Sub SolULFlipper(Enabled)
+		If DisableFlippers = False Then
+			If Enabled Then
+				PlaySound SoundFXDOF("fx_flipperup", 101, DOFOn, DOFFlippers), 0, 1, -0.05, 0.15
+				LeftFlipper2.RotateToEnd
+			Else
+				PlaySound SoundFXDOF("fx_flipperdown", 101, DOFOff, DOFFlippers), 0, 1, -0.05, 0.15
+				LeftFlipper2.RotateToStart
+			End If
+		End If
+	End Sub
+
+	Sub SolRFlipper(Enabled)
+		If DisableFlippers = False Then
+			If Enabled Then
+				PlaySound SoundFXDOF("fx_flipperup", 102, DOFOn, DOFFlippers), 0, 1, 0.05, 0.15
+				RightFlipper.RotateToEnd
+				If bSkillshotReady = False Then
+					RotateLaneLightsRight
+				End If
+			Else
+				PlaySound SoundFXDOF("fx_flipperdown", 102, DOFOff, DOFFlippers), 0, 1, 0.05, 0.15
+				RightFlipper.RotateToStart
+			End If
+		End If
+	End Sub
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  Starting and Ending Game
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+	' Initialise the Table for a new Game
+	'
+	Sub ResetForNewGame()
+		Dim i
+		bGameInPLay = True
+		'resets the score display, and turn off attrack mode
+		StopAttractMode
+		GiOn
+		TotalGamesPlayed = TotalGamesPlayed + 1
+		CurrentPlayer = 1
+		PlayersPlayingGame = 1
+		bOnTheFirstBall = True
+		For i = 1 To MaxPlayers
+			Score(i) = 0
+			BonusPoints(i) = 0
+			BonusHeldPoints(i) = 0
+			BonusMultiplier(i) = 1
+			BallsRemaining(i) = bpgcurrent
+			ExtraBallsAwards(i) = 0
+		Next
+		Tilt = 0
+		Game_Init()
+		vpmtimer.addtimer 1500, "FirstBall '"
+	End Sub
+
+	' This is used to delay the start of a game to allow any attract sequence to
+	' complete.  When it expires it creates a ball for the player to start playing with
+	Sub FirstBall
+		' reset the table for a new ball
+		ResetForNewPlayerBall()
+		' create a new ball in the shooters lane
+		CreateNewBall()
+	End Sub
+
+	' (Re-)Initialise the Table for a new ball (either a new ball after the player has
+	' lost one or we have moved onto the next player (if multiple are playing))
+	Sub ResetForNewPlayerBall()
+		AddScore 0
+		BonusPoints(CurrentPlayer) = 0
+		bBonusHeld = False
+		bExtraBallWonThisBall = False
+		ResetNewBallLights()
+		ResetNewBallVariables
+		bBallSaverReady = True
+		RaiseTargets
+		bSkillShotReady = True
+	End Sub
+
+	Sub CreateNewBall()
+		' create a ball in the plunger lane kicker.
+		BallRelease.CreateSizedball BallSize / 2
+
+		' There is a (or another) ball on the playfield
+		BallsOnPlayfield = BallsOnPlayfield + 1
+
+		' kick it out..
+		PlaySound SoundFXDOF("fx_Ballrel", 114, DOFPulse, DOFContactors), 0, 1, 0.1, 0.1
+		BallRelease.Kick 90, 4
+
+	' if there is 2 or more balls then set the multibal flag (remember to check for locked balls and other balls used for animations)
+	' set the bAutoPlunger flag to kick the ball in play automatically
+		If BallsOnPlayfield > 1 Then
+			bMultiBallMode = True
+				DOF 127, DOFPulse
+			bAutoPlunger = True
+		End If
+
+	'new song for the mode
+		'If barbMultiball = True Then
+		'	PlaySong "m_barb"  'this last number is the volume, from 0 to 1
+		'End If
+	End Sub
+
+	' Add extra balls to the table with autoplunger
+	' Use it as AddMultiball 4 to add 4 extra balls to the table
+
+	Sub AddMultiball(nballs)
+		mBalls2Eject = mBalls2Eject + nballs
+		CreateMultiballTimer.Enabled = True
+	End Sub
+
+	' Eject the ball after the delay, AddMultiballDelay
+	Sub CreateMultiballTimer_Timer()
+		' wait if there is a ball in the plunger lane
+		If bBallInPlungerLane Then
+			Exit Sub
+		Else
+			If BallsOnPlayfield <MaxMultiballs Then
+				CreateNewBall()
+				mBalls2Eject = mBalls2Eject -1
+				If mBalls2Eject = 0 Then 'if there are no more balls to eject then stop the timer
+					Me.Enabled = False
+				End If
+			Else 'the max number of multiballs is reached, so stop the timer
+				mBalls2Eject = 0
+				Me.Enabled = False
+			End If
+		End If
+	End Sub
+
+	Sub EndOfBall()
+		'Dim AwardPoints, TotalBonus, ii
+		'AwardPoints = 0
+		'TotalBonus = 0
+		' the first ball has been lost. From this point on no new players can join in
+		bOnTheFirstBall = False
+
+		If NOT Tilted Then
+
+			' add a bit of a delay to allow for the bonus points to be shown & added up
+			vpmtimer.addtimer 100, "EndOfBall2 '"
+		Else 'if tilted then only add a short delay
+			vpmtimer.addtimer 100, "EndOfBall2 '"
+		End If
+	End Sub
+
+	' The Timer which delays the machine to allow any bonus points to be added up
+	' has expired.  Check to see if there are any extra balls for this player.
+	' if not, then check to see if this was the last ball (of the currentplayer)
+	'
+	Sub EndOfBall2()
+		' if were tilted, reset the internal tilted flag (this will also
+		' set TiltWarnings back to zero) which is useful if we are changing player LOL
+		Tilted = False
+		Tilt = 0
+		DisableTable False 'enable again bumpers and slingshots
+
+		' has the player won an extra-ball ? (might be multiple outstanding)
+		If(ExtraBallsAwards(CurrentPlayer) <> 0) Then
+			'debug.print "Extra Ball"
+
+			' yep got to give it to them
+			ExtraBallsAwards(CurrentPlayer) = ExtraBallsAwards(CurrentPlayer) - 1
+
+			' if no more EB's then turn off any shoot again light
+			If(ExtraBallsAwards(CurrentPlayer) = 0) Then
+				LightShootAgain.State = 0
+			End If
+
+			' You may wish to do a bit of a song AND dance at this point
+					LightSeqFlasher.UpdateInterval = 150
+					LightSeqFlasher.Play SeqRandom, 10, , 2000
+					DMD "black.png", "SHOOT", "AGAIN",  2000
+
+			' Create a new ball in the shooters lane
+			CreateNewBall()
+		Else ' no extra balls
+
+			BallsRemaining(CurrentPlayer) = BallsRemaining(CurrentPlayer) - 1
+
+			' was that the last ball ?
+			If(BallsRemaining(CurrentPlayer) <= 0) Then
+				'debug.print "No More Balls, High Score Entry"
+
+				' Submit the currentplayers score to the High Score system
+				CheckHighScore()
+			' you may wish to play some music at this point
+
+			Else
+
+				' not the last ball (for that player)
+				' if multiple players are playing then move onto the next one
+				EndOfBallComplete()
+			End If
+		End If
+	End Sub
+
+	' This function is called when the end of bonus display
+	' (or high score entry finished) AND it either end the game or
+	' move onto the next player (or the next ball of the same player)
+	'
+	Sub EndOfBallComplete()
+		Dim NextPlayer
+
+		'debug.print "EndOfBall - Complete"
+
+		' are there multiple players playing this game ?
+		If(PlayersPlayingGame> 1) Then
+			' then move to the next player
+			NextPlayer = CurrentPlayer + 1
+			' are we going from the last player back to the first
+			' (ie say from player 4 back to player 1)
+			If(NextPlayer> PlayersPlayingGame) Then
+				NextPlayer = 1
+			End If
+		Else
+			NextPlayer = CurrentPlayer
+		End If
+
+		'debug.print "Next Player = " & NextPlayer
+
+		' is it the end of the game ? (all balls been lost for all players)
+		If((BallsRemaining(CurrentPlayer) <= 0) AND(BallsRemaining(NextPlayer) <= 0) ) Then
+			' you may wish to do some sort of Point Match free game award here
+			' generally only done when not in free play mode
+
+			' set the machine into game over mode
+			EndOfGame()
+
+		' you may wish to put a Game Over message on the desktop/backglass
+
+		Else
+			' set the next player
+			CurrentPlayer = NextPlayer
+
+			' make sure the correct display is up to date
+			AddScore 0
+
+			' reset the playfield for the new player (or new ball)
+			ResetForNewPlayerBall()
+
+			' AND create a new ball
+			CreateNewBall()
+
+			' play a sound if more than 1 player
+			If PlayersPlayingGame> 1 Then
+				PlaySound "vo_player" &CurrentPlayer
+				DMD "black.png", " ", "PLAYER " &CurrentPlayer,  800
+			End If
+		End If
+	End Sub
+
+	' This function is called at the End of the Game, it should reset all
+	' Drop targets, AND eject any 'held' balls, start any attract sequences etc..
+
+	Sub EndOfGame()
+		'debug.print "End Of Game"
+		introposition = 0
+		bGameInPLay = False
+		' just ended your game then play the end of game tune
+		If NOT bJustStarted Then
+			PlaySong "m_end"
+		End If
+		bJustStarted = False
+		' ensure that the flippers are down
+		SolLFlipper 0
+		SolRFlipper 0
+		SolULFlipper 0
+		BallsInLock(CurrentPlayer) = 0
+		BallsInRunLock(CurrentPlayer) = 0
+		RaiseTargets
+
+		DMD "black.png", "Game Over", "",  2000
+		Dim i
+		If Score(1) Then
+			DMD "black.png", "PLAYER 1", Score(1), 3000
+		End If
+		If Score(2) Then
+			DMD "black.png", "PLAYER 2", Score(2), 3000
+		End If
+		If Score(3) Then
+			DMD "black.png", "PLAYER 3", Score(3), 3000
+		End If
+		If Score(4) Then
+			DMD "black.png", "PLAYER 4", Score(4), 3000
+		End If
+
+		' set any lights for the attract mode
+		GiOff
+		StartAttractMode
+	' you may wish to light any Game Over Light you may have
+	End Sub
+
+	Function Balls
+		Dim tmp
+		tmp = bpgcurrent - BallsRemaining(CurrentPlayer) + 1
+		If tmp> bpgcurrent Then
+			Balls = bpgcurrent
+		Else
+			Balls = tmp
+		End If
+	End Function
+
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  Drain & Plunger Functions
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Drain Function, yeah it's beastly
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Dim Saves
+	Dim Drains
+	Dim BIP
+	BIP = 0
+
+	Sub Drain_Hit()
+		startB2S(7)
+		Drain.DestroyBall
+		BallsOnPlayfield = BallsOnPlayfield - 1
+		PlaySound "fx_drain"
+		'if Tilted the end Ball Mode
+		If Tilted Then
+			StopEndOfBallMode
+		End If
+		If(bGameInPLay = True) AND(Tilted = False) Then
+			If(bBallSaverActive = True) Then
+				AddMultiball 1
+				bAutoPlunger = True
+				If bMultiBallMode = False Then
+					Ballsaved
+				End If
+			Else
+				' cancel any multiball if on last ball (ie. lost all other balls)
+				If(BallsOnPlayfield = 1) Then
+					' AND in a multi-ball??
+					If(bMultiBallMode = True) then
+						' not in multiball mode any more
+						'If barbMultiball = True Then
+						'EndBarb
+						'End If
+						bMultiBallMode = False	
+					End If
+					bMultiBallMode = False
+					' you may wish to change any music over at this point and
+					' turn off any multiball specific lights	
+					ChangeGi "white"
+					CurrentSong
+			End If
+			' was that the last ball on the playfield
+			If(BallsOnPlayfield = 0) Then
+				' Stop Music
+				PlaySong "m_wait"
+				ChangeGi "white"
+				Balldrained
+				vpmtimer.addtimer 4500, "EndOfBall '"
+					StopEndOfBallMode
+				End If
+			End If
+		End If
+	End Sub
+
+	Sub Balldrained
+		Drains = Drains + 1
+		Select Case Drains
+			Case 1 DMD "drain3-3.wmv", "", "", 4000
+			Case 2 DMD "drain2-2.wmv", "", "", 3000
+			Case 3 DMD "drain1-4.wmv", "", "", 5000:Drains = 0
+		End Select
+	End Sub
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Ball Saver Functions
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	Sub Ballsaved
+		Saves = Saves + 1
+		Select Case Saves
+			Case 1 DMD "ballsave1-2.wmv", "", "", 3000
+			Case 2 DMD "ballsave2-6.wmv", "", "", 7000:Saves = 0
+		End Select
+	End Sub
+
+	Sub ballsavestarttrigger_hit
+		If(bBallSaverReady = True) AND(bstcurrent <> 0) And(bBallSaverActive = False) Then
+			EnableBallSaver bstcurrent
+		End If
+	End Sub
+
+	Sub EnableBallSaver(seconds)
+		bBallSaverActive = True
+		bBallSaverReady = False
+		' start the timer
+		BallSaverTimerExpired.Interval = 1000 * seconds
+		BallSaverTimerExpired.Enabled = True
+		BallSaverSpeedUpTimer.Interval = 1000 * seconds -(1000 * seconds) / 3
+		BallSaverSpeedUpTimer.Enabled = True
+		' if you have a ball saver light you might want to turn it on at this point (or make it flash)
+		LightShootAgain.BlinkInterval = 160
+		LightShootAgain.State = 2
+	End Sub
+
+	Sub BallSaverTimerExpired_Timer()
+		BallSaverTimerExpired.Enabled = False
+		bBallSaverActive = False
+		LightShootAgain.State = 0
+	End Sub
+
+	Sub BallSaverSpeedUpTimer_Timer()
+		BallSaverSpeedUpTimer.Enabled = False
+		LightShootAgain.BlinkInterval = 80
+		LightShootAgain.State = 2
+	End Sub
+
+
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Plunger Functions
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	Sub Plunger_Init()
+		PlaySound "ballrelease",0,1,0,0.25
+		'Plunger.CreateBall
+		BallRelease.CreateBall
+		BallRelease.Kick 90, 7
+		BIP = BIP +1
+	End Sub
+
+	Sub swPlungerRest_Hit()
+		PlaySound "fx_sensor", 0, 1, 0.15, 0.25
+		bBallInPlungerLane = True
+		'Update the Scoreboard
+		DMDScoreNow
+		' kick the ball in play if the bAutoPlunger flag is on
+		If bAutoPlunger Then
+				PlungerIM.Strength = 45
+				PlungerIM.AutoFire
+				PlungerIM.Strength = Plunger.MechStrength
+				DOF 114, DOFPulse		
+			DOF 115, DOFPulse
+			bAutoPlunger = False
+		End If
+		DOF 141, DOFOn
+		If bSkillShotReady Then
+			swPlungerRest.TimerEnabled = 1
+			UpdateSkillshot()
+		If NOT bMultiballMode Then
+			Whatsong
+			CurrentSong
+		End If
+		End If
+		LastSwitchHit = "swPlungerRest"
+	End Sub
+
+	Sub swPlungerRest_UnHit()
+		bBallInPlungerLane = False
+		swPlungerRest.TimerEnabled = 0 'stop the launch ball timer if active
+		DMDScoreNow
+		If bSkillShotReady Then
+			ResetSkillShotTimer.Enabled = 1
+		End If
+	End Sub
+
+	' swPlungerRest timer to show the "launch ball" if the player has not shot the ball during 6 seconds
+
+	Sub swPlungerRest_Timer
+		DMD "start-5.wmv", "", "",  6000
+		swPlungerRest.TimerEnabled = 0
+	End Sub
+
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'   Sound FX - General Table Sounds
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+	Dim Song
+	Song = ""
+
+	Sub PlaySong(name)
+		If bMusicOn Then
+			If Song <> name Then
+				StopSound Song
+				Song = name
+				If Song = "m_end" Then
+					PlaySound Song, 0, 0.1  'this last number is the volume, from 0 to 1
+				Else
+					PlaySound Song, -1, 0.1 'this last number is the volume, from 0 to 1
+				End If
+			End If
+		End If
+	End Sub
+
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Different Song Per Ball
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Dim changetrack
+	Sub Whatsong
+		changetrack = changetrack +1
+	End Sub
+
+	Sub CurrentSong
+		Select Case changetrack
+			Case 1
+				PlaySong "m_main"
+			Case 2
+				PlaySong "m_main2"
+			Case 3
+				PlaySong "m_main3"
+				changetrack = 0
+			End Select
+	End Sub
+
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Supporting Ball Sound Functions
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	Function Vol(ball) ' Calculates the Volume of the sound based on the ball speed
+		Vol = Csng(BallVel(ball) ^2 / 2000)
+	End Function
+
+	Function Pan(ball) ' Calculates the pan for a ball based on the X position on the table. "table1" is the name of the table
+		Dim tmp
+		tmp = ball.x * 2 / table1.width-1
+		If tmp > 0 Then
+			Pan = Csng(tmp ^10)
+		Else
+			Pan = Csng(-((- tmp) ^10) )
+		End If
+	End Function
+
+	Function Pitch(ball) ' Calculates the pitch of the sound based on the ball speed
+		Pitch = BallVel(ball) * 20
+	End Function
+
+	Function BallVel(ball) 'Calculates the ball speed
+		BallVel = INT(SQR((ball.VelX ^2) + (ball.VelY ^2) ) )
+	End Function
+
+
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'->  Ramp Sounds, Use as needed
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'shooter ramp
+	Sub ShooterStart_Hit():StopSound "fx_launchball":If ActiveBall.VelY < 0 Then PlaySound "fx_launchball":End If:End Sub	'ball is going up
+	Sub ShooterEnd_Hit:If ActiveBall.Z > 50  Then Me.TimerInterval=100:Me.TimerEnabled=1:End If:End Sub						'ball is flying
+	Sub ShooterEnd_Timer(): Me.TimerEnabled=0 : PlaySound "fx_balldrop" : End Sub
+	'center ramp
+	Sub CREnter_Hit():If ActiveBall.VelY < 0 Then PlaySound "fx_lrenter":End If:End Sub			'ball is going up
+	Sub CREnter_UnHit():If ActiveBall.VelY > 0 Then StopSound "fx_metalrolling":StopSound "fx_lrenter":End If:End Sub		'ball is going down
+	Sub CRExit_Hit:StopSound "fx_lrenter" : Me.TimerInterval=100:Me.TimerEnabled=1:End Sub
+	Sub CRExit_Timer(): Me.TimerEnabled=0 : PlaySound "fx_metalrolling" : End Sub
+	'left ramp
+	'Sub LREnter_hit():PlaySound "fx_metalrolling":If Activeball.VelY<6 Then ActiveBall.VelY=12:End If:End Sub
+	'Sub LRExit_Hit:StopSound "fx_metalrolling":Me.TimerInterval=200:Me.TimerEnabled=1:End Sub
+	'Sub LRExit_timer:Me.TimerEnabled=0:Playsound "fx_wireramp_exit"::End Sub
+	'right ramp
+	'Sub RREnter_Hit():If ActiveBall.VelY < 0 Then PlaySound "fx_lrenter":End If:End Sub			'ball is going up
+	'Sub RREnter_UnHit():If ActiveBall.VelY > 0 Then StopSound "fx_lrenter":End If:End Sub		'ball is going down
+	'Sub RRail_Hit::If ActiveBall.VelY < 0 Then StopSound "fx_lrenter" : Me.TimerInterval=100:Me.TimerEnabled=1:End If:End Sub		'ball is going up
+	'Sub RRail_UnHit:If ActiveBall.VelY > 0 Then StopSound "fx_metalrolling":End If:End Sub		'ball is going down
+	'Sub RRail_Timer(): Me.TimerEnabled=0 : PlaySound "fx_metalrolling" : End Sub
+	'Sub RRPost_Hit():StopSound "fx_metalrolling":End Sub
+	'Sub RRPost_UnHit():me.Enabled = 0:PlaySound "fx_wireramp_exit", 0, 1, pan(ActiveBall):End Sub
+	'Sub RRExit_Hit:StopSound "fx_metalrolling":Me.TimerInterval=200:Me.TimerEnabled=1:End Sub
+	'Sub RRExit_timer:Me.TimerEnabled=0:Playsound "fx_wireramp_exit"::End Sub
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Real Time updates using the GameTimer
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Sub GameTimer_Timer
+		RollingSoundUpdate
+		BallShadowUpdate
+	End Sub
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'->  Ball Rolling Sound
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	Const tnob = 5						' total number of balls : 4 (trough) + 1 (Fake Ball)
+	Const fakeballs = 1					' number of balls created on table start (rolling sound and ballshadow will be skipped)
+	ReDim rolling(tnob-fakeballs)
+
+	Sub InitRolling:Dim i:For i=0 to (tnob-fakeballs-1):rolling(i) = False:Next:End Sub
+
+	Sub RollingSoundUpdate()
+		Dim BOT, b
+		BOT = GetBalls
+		' stop the sound of deleted balls
+		If UBound(BOT)<(tnob - 1) Then
+			For b = (UBound(BOT)-fakeballs + 2) to (tnob-fakeballs)
+				rolling(b-1) = False
+				StopSound("fx_ballrolling" & b)
+			Next
+		End If
+		' exit the Sub if no balls on the table
+		If UBound(BOT) = fakeballs-1 Then Exit Sub
+		' play the rolling sound for each ball
+		For b = fakeballs to UBound(BOT)
+			If BallVel(BOT(b)) > 1 AND BOT(b).z < 30 Then
+				rolling(b-fakeballs) = True
+				PlaySound("fx_ballrolling" & (b-fakeballs+1)), -1, Vol(BOT(b) )/4, Pan(BOT(b) ), 0, Pitch(BOT(b) ), 1, 0
+			Else
+				If rolling(b-fakeballs) = True Then
+					StopSound("fx_ballrolling" & (b-fakeballs+1))
+					rolling(b-fakeballs) = False
+				End If
+			End If
+		Next
+	End Sub
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'->  Sound FX Groupings
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	' Make sure to make collections for each of these to fire the sound fxs
+
+	Sub OnBallBallCollision(ball1, ball2, velocity)
+		PlaySound("fx_collide"), 0, Csng(velocity) ^2 / 500, Pan(ball1), 0, Pitch(ball1), 0, 0
+	End Sub
+
+	Sub Pins_Hit (idx)
+		PlaySound "pinhit_low", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 0, 0
+	End Sub
+
+	Sub Targets_Hit (idx)
+		PlaySound "target", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 0, 0
+	End Sub
+
+	Sub Metals_Thin_Hit (idx)
+		PlaySound "metalhit_thin", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+	End Sub
+
+	Sub Metals_Medium_Hit (idx)
+		PlaySound "metalhit_medium", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+	End Sub
+
+	Sub Metals2_Hit (idx)
+		PlaySound "metalhit2", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+	End Sub
+
+	Sub Gates_Hit (idx)
+		PlaySound "gate4", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+	End Sub
+
+	Sub Spinner_Spin
+		PlaySound "fx_spinner",0,.25,0,0.25
+	End Sub
+
+	Sub Rubbers_Hit(idx)
+		dim finalspeed
+		finalspeed=SQR(activeball.velx * activeball.velx + activeball.vely * activeball.vely)
+		If finalspeed > 20 then 
+			PlaySound "fx_rubber2", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+		End if
+		If finalspeed >= 6 AND finalspeed <= 20 then
+			RandomSoundRubber()
+		End If
+	End Sub
+
+	Sub Posts_Hit(idx)
+		dim finalspeed
+		finalspeed=SQR(activeball.velx * activeball.velx + activeball.vely * activeball.vely)
+		If finalspeed > 16 then 
+			PlaySound "fx_rubber2", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+		End if
+		If finalspeed >= 6 AND finalspeed <= 16 then
+			RandomSoundRubber()
+		End If
+	End Sub
+
+	Sub LeftFlipper_Collide(parm)
+		RandomSoundFlipper()
+	End Sub
+
+	Sub RightFlipper_Collide(parm)
+		RandomSoundFlipper()
+	End Sub
+
+	Sub LeftFlipper2_Collide(parm)
+		RandomSoundFlipper()
+	End Sub
+
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Sound Randomizers
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	Sub RandomSoundFlipper()
+		Select Case Int(Rnd*3)+1
+			Case 1 : PlaySound "flip_hit_1", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+			Case 2 : PlaySound "flip_hit_2", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+			Case 3 : PlaySound "flip_hit_3", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+		End Select
+	End Sub
+
+	Sub RandomSoundRubber()
+		Select Case Int(Rnd*3)+1
+			Case 1 : PlaySound "rubber_hit_1", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+			Case 2 : PlaySound "rubber_hit_2", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+			Case 3 : PlaySound "rubber_hit_3", 0, Vol(ActiveBall), Pan(ActiveBall), 0, Pitch(ActiveBall), 1, 0
+		End Select
+	End Sub
+
+	Sub RandomSoundHole()
+		Select Case RndNum(1,3)
+			Case 1 : PlaySound "fx_hole1"
+			Case 2 : PlaySound "fx_hole2"
+			Case 3 : PlaySound "fx_hole3"
+		End Select
+	End Sub
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'   Ball Functions - Shadow
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+	Dim BallShadow
+	BallShadow = Array (BallShadow1, BallShadow2, BallShadow3,Ballshadow4)
+
+	Sub BallShadowUpdate()
+		Dim BOT, b
+		BOT = GetBalls
+		' hide shadow of deleted balls
+		If UBound(BOT)<(tnob-1) Then
+			For b = (UBound(BOT)-fakeballs + 2) to (tnob-fakeballs)
+				BallShadow(b-1).visible = 0
+			Next
+		End If
+		' exit the Sub if no balls on the table
+		If UBound(BOT) = fakeballs-1 Then Exit Sub
+		' render the shadow for each ball
+		For b = fakeballs to UBound(BOT)
+			If BOT(b).X < Table1.Width/2 Then
+				BallShadow(b-fakeballs).X = ((BOT(b).X) - (Ballsize/6) + ((BOT(b).X - (Table1.Width/2))/10)) + 10
+			Else
+				BallShadow(b-fakeballs).X = ((BOT(b).X) + (Ballsize/6) + ((BOT(b).X - (Table1.Width/2))/10)) - 10
+			End If
+			ballShadow(b-fakeballs).Y = BOT(b).Y + 15
+			If BOT(b).Z > 20 Then
+				BallShadow(b-fakeballs).visible = 1
+			Else
+				BallShadow(b-fakeballs).visible = 0
+			End If
+		Next
+	End Sub
+
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'   Tilt
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+
+	Sub CheckTilt                                    'Called when table is nudged
+		Tilt = Tilt + TiltSensitivity                'Add to tilt count
+		TiltDecreaseTimer.Enabled = True
+		If(Tilt> TiltSensitivity) AND(Tilt <15) Then 'show a warning
+			DMDFlush
+			DMD "black.png", "CAREFUL!", "MOUTHBREATHER",  800
+			DOF 131, DOFPulse
+		End if
+		If Tilt> 15 Then 'If more that 15 then TILT the table
+			Tilted = True
+			'display Tilt
+			DMDFlush
+			DMD "black.png", " ", "TILT!",  99999
+			DisableTable True
+			TiltRecoveryTimer.Enabled = True 'start the Tilt delay to check for all the balls to be drained
+		End If
+	End Sub
+
+	Sub TiltDecreaseTimer_Timer
+		' DecreaseTilt
+		If Tilt> 0 Then
+			Tilt = Tilt - 0.1
+		Else
+			TiltDecreaseTimer.Enabled = False
+		End If
+	End Sub
+
+	Sub DisableTable(Enabled)
+		If Enabled Then
+			'turn off GI and turn off all the lights
+			GiOff
+			LightSeqTilt.Play SeqAllOff
+			'Disable slings, bumpers etc
+			LeftFlipper.RotateToStart
+			RightFlipper.RotateToStart
+			'Bumper1.Force = 0
+
+			LeftSlingshot.Disabled = 1
+			RightSlingshot.Disabled = 1
+		Else
+			'turn back on GI and the lights
+			GiOn
+			LightSeqTilt.StopPlay
+			'Bumper1.Force = 6
+			LeftSlingshot.Disabled = 0
+			RightSlingshot.Disabled = 0
+			'clean up the buffer display
+			DMDFlush
+		End If
+	End Sub
+
+	Sub TiltRecoveryTimer_Timer()
+		' if all the balls have been drained then..
+		If(BallsOnPlayfield = 0) Then
+			' do the normal end of ball thing (this doesn't give a bonus if the table is tilted)
+			EndOfBall()
+			TiltRecoveryTimer.Enabled = False
+		End If
+	' else retry (checks again in another second or so)
+	End Sub
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  UltraDMD Setup - From JP Salas
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+	Dim UltraDMD
+
+	Sub DMD(background, toptext, bottomtext, duration)
+		UltraDMD.DisplayScene00 background, toptext, 15, bottomtext, 15, 14, duration, 14
+		UltraDMDTimer.Enabled = 1 'to show the score after the animation/message
+	End Sub
+
+	Sub DMDScore
+		If inconfig = True Then
+		UltraDMD.SetScoreboardBackgroundImage "black.png", 15, 7
+		UltraDMD.DisplayScoreboard PlayersPlayingGame, CurrentPlayer, Score(1), Score(2), Score(3), Score(4), "" & CurrentPlayer, "Hold Flippers to Exit"
+		Else
+		UltraDMD.SetScoreboardBackgroundImage "scoreboard-background.jpg", 15, 7
+		UltraDMD.DisplayScoreboard PlayersPlayingGame, CurrentPlayer, Score(1), Score(2), Score(3), Score(4), "Player " & CurrentPlayer, "Ball " & Balls
+		End If
+	End Sub
+
+	Sub DMDScoreNow
+		DMDFlush
+		DMDScore
+	End Sub
+
+	Sub DMDFLush
+		UltraDMDTimer.Enabled = 0
+		UltraDMD.CancelRendering
+	End Sub
+
+	Sub DMDScrollCredits(background, text, duration)
+		UltraDMD.ScrollingCredits background, text, 15, 14, duration, 14
+	End Sub
+
+	Sub DMDId(id, background, toptext, bottomtext, duration)
+		UltraDMD.DisplayScene00ExwithID id, False, background, toptext, 15, 0, bottomtext, 15, 0, 14, duration, 14
+	End Sub
+
+	Sub DMDMod(id, toptext, bottomtext, duration)
+		UltraDMD.ModifyScene00Ex id, toptext, bottomtext, duration
+	End Sub
+
+	Sub UltraDMDTimer_Timer 'used for the attractmode and the instant info.
+		If bInstantInfo Then
+			InstantInfo
+		ElseIf bAttractMode Then
+			ShowTableInfo
+		ElseIf NOT UltraDMD.IsRendering Then
+			DMDScoreNow
+		ElseIf bromconfig Then
+			romconfig
+		End If
+	End Sub
+
+	Sub DMD_Init
+		Set UltraDMD = CreateObject("UltraDMD.DMDObject")
+		If UltraDMD is Nothing Then
+			MsgBox "No UltraDMD found.  This table will NOT run without it."
+			Exit Sub
+		End If
+
+		UltraDMD.Init
+		If Not UltraDMD.GetMajorVersion = 1 Then
+			MsgBox "Incompatible Version of UltraDMD found."
+			Exit Sub
+		End If
+
+		If UltraDMD.GetMinorVersion <1 Then
+			MsgBox "Incompatible Version of UltraDMD found. Please update to version 1.1 or newer."
+			Exit Sub
+		End If
+
+		Dim fso:Set fso = CreateObject("Scripting.FileSystemObject")
+		Dim curDir:curDir = fso.GetAbsolutePathName(".")
+
+		Dim DirName
+		DirName = curDir& "\" &TableName& ".UltraDMD"
+
+		If Not fso.FolderExists(DirName) Then _
+				Msgbox "UltraDMD userfiles directory '" & DirName & "' does not exist." & CHR(13) & "No graphic images will be displayed on the DMD"
+		UltraDMD.SetProjectFolder DirName
+
+		' wait for the animation to end
+		While UltraDMD.IsRendering = True
+		WEnd
+
+	End Sub
+
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  Instant Info Setup
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+	
+
+	Sub InstantInfoTimer_Timer
+		InstantInfoTimer.Enabled = False
+		bInstantInfo = True
+		DMDFlush
+		UltraDMDTimer.Enabled = 1
+	End Sub
+
+	Sub InstantInfo
+		If DisableInstantInfo = False Then
+		DMD "black.png", "", "INSTANT INFO",  500
+		End If
+	End Sub
+
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  Orbital Rom Config
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+	Sub RomConfigTimer_Timer
+		If inconfig = True Then
+		StartAttractMode()
+		Else
+		RomConfigTimer.Enabled = False
+		romconfig
+		End If
+	End Sub
+
+	Dim configmode
+	configmode = 0
+	Dim inconfig
+	inconfig = false
+	Sub romconfig
+		Loadbpg
+		inconfig = true
+		DMDFlush
+		StopAttractMode()
+		DMD "config.wmv", "", "",  4000
+		vpmtimer.addtimer 4000, "configoptions '"
+	End Sub
+
+	Sub ConfigKey(keycode)
+		If keycode = LeftFlipperKey Then
+			Playsound "fx_Previous"
+			If mainconfig = True Then
+			configoptions
+			End If
+			If subconfig = true Then
+				If cfg1 = true Then
+				cfgballs
+				End If
+
+				If cfg2 = true Then
+				cfgbst
+				End If
+
+				If cfg3 = true Then
+				cfgfree
+				End If
+
+				If cfg4 = true Then
+				cfghs
+				End If
+
+				If cfg5 = true Then
+				cfgprofanity
+				End If
+
+				If cfg6 = true Then
+				cfgspeed
+				End If
+			End If
+		End If
+
+		If keycode = RightFlipperKey Then
+			Playsound "fx_Next"
+			If mainconfig = True Then
+			configoptions
+			End If
+			If subconfig = true Then
+				If cfg1 = true Then
+				cfgballs
+				End If
+
+				If cfg2 = true Then
+				cfgbst
+				End If
+
+				If cfg3 = true Then
+				cfgfree
+				End If
+
+				If cfg4 = true Then
+				cfghs
+				End If
+
+				If cfg5 = true Then
+				cfgprofanity
+				End If
+
+				If cfg6 = true Then
+				cfgspeed
+				End If
+			End If
+		End If
+
+		If keycode = StartGameKey Then
+		DMDFLush
+		DMD "black.png", "Saving", "Config",  999999
+		vpmtimer.addtimer 2000, "configexit '"
+		end if
+
+		If keycode = PlungerKey OR Keycode = AddCreditKey Then
+			If subconfig = true Then
+				if cfg1 = true Then
+				bpgvalue
+				DMDFLush
+				DMD "cfg.png", "Saving", "Balls Per Game",  999999
+				vpmtimer.addtimer 2000, "configoptions '"
+				subconfig = False
+				bpg5 = False
+				bpg3 = False 
+				end If
+
+				if cfg2 = true Then
+				bstvalue
+				DMDFLush
+				DMD "cfg.png", "Saving", "Ball Save Time",  999999
+				vpmtimer.addtimer 2000, "configoptions '"
+				subconfig = False
+				bst0 = False
+				bst5 = False 
+				bst10 = False
+				bst15 = False 
+				end If
+
+				if cfg3 = true Then
+				freevalue
+				DMDFLush
+				DMD "cfg.png", "Saving", "Free Play Setting",  999999
+				vpmtimer.addtimer 2000, "configoptions '"
+				subconfig = False
+				gmcurrent = False
+				gmcurrent = False 
+				end If
+
+				if cfg4 = true Then
+				hsreset
+				DMDFLush
+				If hscurrent = True Then
+				DMD "cfg.png", "High Scores", "Scores Reset",  999999
+				Else
+				DMD "cfg.png", "High Scores", "Scores Kept",  999999
+				End If
+				vpmtimer.addtimer 2000, "configoptions '"
+				subconfig = False
+				hscurrent = False
+				end If
+
+				if cfg5 = true Then
+				profanityvalue
+				DMDFLush
+				If profanity = True Then
+				DMD "cfg.png", "Profanity", "Kept",  999999
+				Else
+				DMD "cfg.png", "Profanity", "Removed",  999999
+				End If
+				vpmtimer.addtimer 2000, "configoptions '"
+				subconfig = False
+				profanity = False
+				end If
+
+				if cfg6 = true Then
+				speedvalue
+				DMDFLush
+				DMD "cfg.png", "Saving", "Table Speed",  999999
+				vpmtimer.addtimer 2000, "configoptions '"
+				subconfig = False
+				spd1 = False
+				spd2 = False 
+				spd3 = False
+				end If
+			Else
+				if cfg1 = true Then
+					cfgballs
+				End If
+				if cfg2 = true Then
+					cfgbst
+				End If
+				if cfg3 = true Then
+					cfgfree
+				End If
+				if cfg4 = true Then
+					cfghs
+				End If
+				if cfg5 = true Then
+					cfgprofanity
+				End If
+				if cfg6 = true Then
+					cfgspeed
+				End If
+			End If
+		end if
+	End Sub
+
+	Sub configexit
+		inconfig = false
+		DMDFLush
+		StartAttractMode()
+	End Sub
+
+	Dim mainconfig
+	mainconfig = False
+
+	Sub configoptions
+		DMDFLush
+		mainconfig = True
+		configmode = configmode + 1
+		Select case configmode
+			Case 0
+			DMD "cfg.png", "0", "",  999999
+			Case 1
+			DMD "cfg.png", "Balls Per Game", bpgcurrent,  999999
+			cfg1 = true
+			cfg2 = False
+			cfg3 = False
+			cfg4 = False
+			cfg5 = False
+			cfg6 = False
+			Case 2
+			DMD "cfg.png", "Ball Save Time", bstcurrent,  999999
+			cfg2 = True
+			cfg1 = False
+			cfg3 = False
+			cfg4 = False
+			cfg5 = False
+			cfg6 = False
+			Case 3
+			DMD "cfg.png", "Free Play", gamemodecurrent,  999999
+			cfg2 = False
+			cfg1 = False
+			cfg3 = True
+			cfg4 = False
+			cfg5 = False
+			cfg6 = False
+			Case 4
+			DMD "cfg.png", "Reset High Scores?", "hs1=" &HighScore(0),  999999
+			cfg2 = False
+			cfg1 = False
+			cfg3 = False
+			cfg4 = True
+			cfg5 = False
+			cfg6 = False
+			Case 5
+			DMD "cfg.png", "Profanity", profanitycurrent,  999999
+			cfg2 = False
+			cfg1 = False
+			cfg3 = False
+			cfg4 = False
+			cfg5 = True
+			cfg6 = False
+			Case 6
+			DMD "cfg.png", "Table Speed", speedcurrent,  999999
+			cfg2 = False
+			cfg1 = False
+			cfg3 = False
+			cfg4 = False
+			cfg5 = False
+			cfg6 = True
+			configmode = 0
+		End Select
+	End Sub
+
+	'******
+	' cfg modes
+	'*******
+
+
+	' ****
+	' let's setup our defaults
+	' ****
+	Dim subconfig 'used to let the system know we're in a sub menu
+
+	Sub Loadbpg
+	' balls per game default set if empty
+		bpgcurrent = LoadValue(TableName, "ballspergame")
+		If bpgcurrent = "" Then SaveValue TableName, "ballspergame", 3 End If
+	' ball save time default set if empty
+		bstcurrent = LoadValue(TableName, "ballsavetime")
+		If bstcurrent = "" Then SaveValue TableName, "ballsavetime", 5 End If
+	' Game mode default set if empty
+		gamemodecurrent = LoadValue(TableName, "gamemode")
+		If gamemodecurrent = "" Then SaveValue TableName, "gamemode", "True" End If
+	' Profanity default set if empty
+		profanitycurrent = LoadValue(TableName, "profanity")
+		If profanitycurrent = "" Then SaveValue TableName, "profanity", "True" End If
+	' Speed default set if empty
+		speedcurrent = LoadValue(TableName, "Speed")
+		If speedcurrent = "" Then SaveValue TableName, "Speed", "Normal" End If
+	End Sub
+
+
+
+	' CFG 1 - balls per game
+	Dim cfg1
+	cfg1 = False
+	Dim cfg1ops
+	Dim bpg3
+	bpg3 = False
+	Dim bpg5
+	bpg5 = False
+	Dim bpgcurrent
+
+
+	Sub cfgballs
+	DMDFLush
+	mainconfig = False
+	subconfig = True
+	cfg1ops = cfg1ops + 1
+	Select case cfg1ops
+		Case 1
+			DMD "cfg.png", "Balls Per Game", "< 3 >",  999999
+			bpg3 = True
+			bpg5 = False
+		Case 2
+			DMD "cfg.png", "Balls Per Game", "< 5 >",  999999
+			bpg5 = True
+			bpg3 = False
+			cfg1ops = 0
+		End Select
+	End Sub
+
+	Sub bpgvalue
+		If bpg5 = True Then
+		SaveValue TableName, "ballspergame", 5
+		Loadbpg
+		End If
+		If bpg3 = True Then
+		SaveValue TableName, "ballspergame", 3
+		Loadbpg
+		End If
+	End Sub
+
+
+
+
+	' CFG 2 - ball save time
+	Dim cfg2
+	cfg2 = False
+	Dim cfg2ops
+	cfg2ops = 0
+	Dim bst0
+	bst0 = False
+	Dim bst5
+	bst5 = False
+	Dim bst10
+	bst10 = False
+	Dim bst15
+	bst15 = False
+	Dim bstcurrent
+
+	Sub cfgbst
+	DMDFLush
+	mainconfig = False
+	subconfig = True
+	cfg2ops = cfg2ops + 1
+	Select case cfg2ops
+		Case 1
+			DMD "cfg.png", "Ball Save Time", "< 0 >",  999999
+			bst0 = True
+			bst5 = False
+			bst10 = False
+			bst15 = False
+		Case 2
+			DMD "cfg.png", "Ball Save Time", "< 5 >",  999999
+			bst0 = False
+			bst5 = True
+			bst10 = False
+			bst15 = False
+		Case 3
+			DMD "cfg.png", "Ball Save Time", "< 10 >",  999999
+			bst0 = False
+			bst5 = False
+			bst10 = True
+			bst15 = False
+		Case 4
+			DMD "cfg.png", "Ball Save Time", "< 15 >",  999999
+			bst0 = False
+			bst5 = False
+			bst10 = False
+			bst15 = True
+			cfg2ops = 0
+		End Select
+	End Sub
+
+	Sub bstvalue
+		If bst0 = True Then
+		SaveValue TableName, "ballsavetime", 0
+		Loadbpg
+		End If
+		If bst5 = True Then
+		SaveValue TableName, "ballsavetime", 5
+		Loadbpg
+		End If
+		If bst10 = True Then
+		SaveValue TableName, "ballsavetime", 10
+		Loadbpg
+		End If
+		If bst15 = True Then
+		SaveValue TableName, "ballsavetime", 15
+		Loadbpg
+		End If
+	End Sub
+
+
+	' cfg 3 free play or coins 
+		' freeplay or coins  bFreePlay = True 'we dont want coins
+	Dim cfg3
+	cfg3 = False
+	Dim cfg3ops
+	Dim gmcurrent
+	gmcurrent = True
+	Dim gamemodecurrent
+
+	Sub cfgfree
+	DMDFLush
+	mainconfig = False
+	subconfig = True
+	cfg3ops = cfg3ops + 1
+	Select case cfg3ops
+		Case 1
+			DMD "cfg.png", "Free Play", "< True >",  999999
+			gmcurrent = True
+		Case 2
+			DMD "cfg.png", "Free Play", "< False >",  999999
+			gmcurrent = False
+			cfg3ops = 0
+		End Select
+	End Sub
+
+	Sub freevalue
+		If gmcurrent = True Then
+		SaveValue TableName, "gamemode", "True"
+		Loadbpg
+		End If
+		If gmcurrent = False Then
+		SaveValue TableName, "gamemode", "False"
+		Loadbpg
+		End If
+	End Sub
+
+	' cfg 4 reset high scores
+	Dim cfg4
+	cfg4 = False
+	Dim cfg4ops
+	Dim hscurrent
+	hscurrent = True
+
+	Sub cfghs
+	DMDFLush
+	mainconfig = False
+	subconfig = True
+	cfg4ops = cfg4ops + 1
+	Select case cfg4ops
+		Case 1
+			DMD "cfg.png", "Reset High Scores", "< Yes >",  999999
+			hscurrent = True
+		Case 2
+			DMD "cfg.png", "Reset High Scores", "< Hell No >",  999999
+			hscurrent = False
+			cfg4ops = 0
+		End Select
+	End Sub
+
+	Sub hsreset
+		If hscurrent = True Then
+		SaveValue TableName, "HighScore1", 11111111
+		SaveValue TableName, "HighScore1Name", "011"
+		SaveValue TableName, "HighScore2", 10000000
+		SaveValue TableName, "HighScore2Name", "SBW"
+		SaveValue TableName, "HighScore3", 9000000
+		SaveValue TableName, "HighScore3Name", "JPS"
+		SaveValue TableName, "HighScore4", 1000
+		SaveValue TableName, "HighScore4Name", "BRB"
+		Loadhs
+		End If
+		If hscurrent = False Then
+		Loadhs
+		End If
+	End Sub
+
+	' cfg 5 Profanity Filter
+	Dim cfg5
+	cfg5 = False
+	Dim cfg5ops
+	Dim profanity
+	profanity = True
+	Dim profanitycurrent
+
+	Sub cfgprofanity
+	DMDFLush
+	mainconfig = False
+	subconfig = True
+	cfg5ops = cfg5ops + 1
+	Select case cfg5ops
+		Case 1
+			DMD "cfg.png", "Profanity", "< True >",  999999
+			profanity = True
+		Case 2
+			DMD "cfg.png", "Profanity", "< False >",  999999
+			profanity = False
+			cfg5ops = 0
+		End Select
+	End Sub
+
+	Sub profanityvalue
+		If profanity = True Then
+		SaveValue TableName, "profanity", "True"
+		Loadbpg
+		End If
+		If profanity = False Then
+		SaveValue TableName, "profanity", "False"
+		Loadbpg
+		End If
+	End Sub
+
+	' CFG 6 - table speed
+	Dim cfg6
+	cfg6 = False
+	Dim cfg6ops
+	cfg6ops = 0
+	Dim spd1
+	spd1 = False
+	Dim spd2
+	spd2 = False
+	Dim spd3
+	spd3 = False
+	Dim speedcurrent
+
+	Sub cfgspeed
+	DMDFLush
+	mainconfig = False
+	subconfig = True
+	cfg6ops = cfg6ops + 1
+	Select case cfg6ops
+		Case 1
+			DMD "cfg.png", "Table Speed", "< Slow >",  999999
+			spd1 = True
+			spd2 = False
+			spd3 = False
+		Case 2
+			DMD "cfg.png", "Table Speed", "< Normal >",  999999
+			spd1 = False
+			spd2 = True
+			spd3 = False
+		Case 3
+			DMD "cfg.png", "Table Speed", "< Fast >",  999999
+			spd1 = False
+			spd2 = False
+			spd3 = True
+			cfg6ops = 0
+		End Select
+	End Sub
+
+	Sub speedvalue
+		If spd1 = True Then
+		SaveValue TableName, "speed", "Slow"
+		Loadbpg
+		End If
+		If spd2 = True Then
+		SaveValue TableName, "speed", "Normal"
+		Loadbpg
+		End If
+		If spd3 = True Then
+		SaveValue TableName, "speed", "Fast"
+		Loadbpg
+		End If
+	End Sub
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  Scoring Functions
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'
+	Sub AddScore(points)
+		If(Tilted = False) Then
+			' add the points to the current players score variable
+			Score(CurrentPlayer) = Score(CurrentPlayer) + points
+			' update the score displays
+			DMDScore
+		End if
+	End Sub
+
+	Sub AddBonus(points) 'not used in this table, since there are many different bonus items.
+		If(Tilted = False) Then
+			' add the bonus to the current players bonus variable
+			BonusPoints(CurrentPlayer) = BonusPoints(CurrentPlayer) + points
+			' update the score displays
+			DMDScore
+		End if
+	End Sub
+
+	Sub AddJackpot(points) 'not used in this table
+		If(Tilted = False)Then
+			If(bMultiBallMode = True) Then
+			Jackpot = Jackpot + points
+			If (Jackpot >= 6000) Then
+			Jackpot = 6000
+			End if
+		End if
+		End if
+	End Sub
+
+	Sub AddSuperJackpot(points)
+		If(Tilted = False) Then
+			SuperJackpot = SuperJackpot + points
+		End if
+	End Sub
+
+	Sub AwardExtraBall()
+		If NOT bExtraBallWonThisBall Then
+			DMD "black.png", "EXTRA", "BALL",  2000
+			LightShootAgain.State = 1
+			LightSeqFlasher.UpdateInterval = 150
+			LightSeqFlasher.Play SeqRandom, 10, , 10000
+			ExtraBallsAwards(CurrentPlayer) = ExtraBallsAwards(CurrentPlayer) + 1
+			bExtraBallWonThisBall = True
+		Else
+		AddScore 2000000
+		END If
+	End Sub
+
+	Sub AwardSpecial()
+		Credits = Credits + 1
+		DOF 140, DOFOn
+		PlaySound SoundFXDOF("knocker",136,DOFPulse,DOFKnocker)		
+		DOF 115, DOFPulse
+		GiEffect 1
+		LightEffect 1
+	End Sub
+
+	'in this table the jackpot is always 1 million + 10% of your score
+
+	Sub AwardJackpot() 'award a normal jackpot, double or triple jackpot
+		Jackpot = 1000000 + Round(Score(CurrentPlayer) / 10, 0)
+		DMD "black.png", "JACKPOT", Jackpot,  1000
+		AddScore Jackpot
+		DOF 125, DOFPulse
+		GiEffect 1
+		LightEffect 2
+		FlashEffect 2
+	End Sub
+
+	Sub AwardDoubleJackpot() 'in this table the jackpot is always 1 million + 10% of your score
+		Jackpot = (1000000 + Round(Score(CurrentPlayer) / 10, 0) ) * 2
+		DMD "black.png", "DOUBLE JACKPOT", Jackpot,  1000
+		DOF 125, DOFPulse
+		GiEffect 1
+		LightEffect 2
+		FlashEffect 2
+	End Sub
+
+	Sub AwardTripleJackpot() 'in this table the jackpot is always 1 million + 10% of your score
+		'DOF 132, DOFPulse
+		Jackpot = (1000000 + Round(Score(CurrentPlayer) / 10, 0) ) * 3
+		DMD "black.png", "TRIPLE JACKPOT", Jackpot,  1000
+		DOF 125, DOFPulse
+		AddScore Jackpot
+		GiEffect 1
+		LightEffect 2
+		FlashEffect 2
+	End Sub
+
+	Sub AwardSuperJackpot() 'in this table a super jackpot is a jackpot when the playfield multiplier is over 4x or 5x
+		Dim tmp
+		tmp = "vo_superjackpot" & INT(RND * 5 + 1)
+		DMDFlush
+		DMD "black.png", "SUPER JACKPOT", Jackpot,  1000
+		DOF 125, DOFPulse
+		AddScore SuperJackpot
+		GiEffect 1
+		LightEffect 2
+		FlashEffect 2
+	End Sub
+
+	Sub AwardSkillshot()
+		Dim i
+		DOF 125, DOFPulse
+		ResetSkillShotTimer_Timer
+		DMDFlush
+		DMD "steve6-2.wmv", "", "",  3000
+		AddScore SkillshotValue(CurrentPLayer)
+		SkillShotValue(CurrentPLayer) = SkillShotValue(CurrentPLayer) + 1000000
+		GiEffect 1
+		LightEffect 2
+		LightEffect 9
+	End Sub
+
+	Sub Congratulation()
+		Dim tmp
+		tmp = "vo_congrat" & INT(RND * 21 + 1)
+		PlaySound tmp
+	End Sub
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  High Score Entering & Recalling
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+	Sub Loadhs
+		Dim x
+		x = LoadValue(TableName, "HighScore1")
+		If(x <> "") Then HighScore(0) = CDbl(x) Else HighScore(0) = 1300000 End If
+
+		x = LoadValue(TableName, "HighScore1Name")
+		If(x <> "") Then HighScoreName(0) = x Else HighScoreName(0) = "SBW" End If
+
+		x = LoadValue(TableName, "HighScore2")
+		If(x <> "") then HighScore(1) = CDbl(x) Else HighScore(1) = 1200000 End If
+
+		x = LoadValue(TableName, "HighScore2Name")
+		If(x <> "") then HighScoreName(1) = x Else HighScoreName(1) = "JPS" End If
+
+		x = LoadValue(TableName, "HighScore3")
+		If(x <> "") then HighScore(2) = CDbl(x) Else HighScore(2) = 1100000 End If
+
+		x = LoadValue(TableName, "HighScore3Name")
+		If(x <> "") then HighScoreName(2) = x Else HighScoreName(2) = "011" End If
+
+		x = LoadValue(TableName, "HighScore4")
+		If(x <> "") then HighScore(3) = CDbl(x) Else HighScore(3) = 1000000 End If
+
+		x = LoadValue(TableName, "HighScore4Name")
+		If(x <> "") then HighScoreName(3) = x Else HighScoreName(3) = "011" End If
+
+		x = LoadValue(TableName, "Credits")
+		If(x <> "") then Credits = CInt(x) Else Credits = 0 End If
+
+		'x = LoadValue(TableName, "Jackpot")
+		'If(x <> "") then Jackpot = CDbl(x) Else Jackpot = 200000 End If
+		x = LoadValue(TableName, "TotalGamesPlayed")
+		If(x <> "") then TotalGamesPlayed = CInt(x) Else TotalGamesPlayed = 0 End If
+	End Sub
+
+	Sub Savehs
+		SaveValue TableName, "HighScore1", HighScore(0)
+		SaveValue TableName, "HighScore1Name", HighScoreName(0)
+		SaveValue TableName, "HighScore2", HighScore(1)
+		SaveValue TableName, "HighScore2Name", HighScoreName(1)
+		SaveValue TableName, "HighScore3", HighScore(2)
+		SaveValue TableName, "HighScore3Name", HighScoreName(2)
+		SaveValue TableName, "HighScore4", HighScore(3)
+		SaveValue TableName, "HighScore4Name", HighScoreName(3)
+		SaveValue TableName, "Credits", Credits
+		'SaveValue TableName, "Jackpot", Jackpot
+		SaveValue TableName, "TotalGamesPlayed", TotalGamesPlayed
+	End Sub
+
+
+	Dim hsbModeActive
+	Dim hsEnteredName
+	Dim hsEnteredDigits(3)
+	Dim hsCurrentDigit
+	Dim hsValidLetters
+	Dim hsCurrentLetter
+	Dim hsLetterFlash
+
+	Sub CheckHighscore()
+		Dim tmp
+		tmp = Score(1)
+
+		If Score(2)> tmp Then tmp = Score(2)
+		If Score(3)> tmp Then tmp = Score(3)
+		If Score(4)> tmp Then tmp = Score(4)
+
+		If tmp> HighScore(1) Then 'add 1 credit for beating the highscore
+			AwardSpecial
+		End If
+
+		If tmp> HighScore(3) Then
+			vpmtimer.addtimer 2000, "PlaySound ""vo_contratulationsgreatscore"" '"
+			HighScore(3) = tmp
+			'enter player's name
+			HighScoreEntryInit()
+		Else
+			EndOfBallComplete()
+		End If
+	End Sub
+
+	Sub HighScoreEntryInit()
+		hsbModeActive = True
+		PlaySound "vo_enteryourinitials"
+		hsLetterFlash = 0
+
+		hsEnteredDigits(0) = "A"
+		hsEnteredDigits(1) = " "
+		hsEnteredDigits(2) = " "
+		hsCurrentDigit = 0
+
+		hsValidLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ<" ' < is back arrow
+		hsCurrentLetter = 1
+		DMDFlush
+		DMD "fw-6.wmv", "You Got", "A High Score",  3000
+		DMD "black.png", "Your Score", Score(CurrentPlayer),  2000
+		DMD "black.png", "Enter Your", "Initials",  250
+		Playsound "bellhs"
+		DMD "black.png", "", "",  250
+		DMD "black.png", "Enter Your", "Initials",  250
+		Playsound "bellhs"
+		DMD "black.png", "", "",  250
+		DMD "black.png", "Enter Your", "Initials",  250
+		Playsound "bellhs"
+		DMD "black.png", "", "",  250
+		DMD "black.png", "Enter Your", "Initials",  250
+		Playsound "bellhs"
+		DMD "black.png", "", "",  250
+		'DMD "highscore-20.wmv", "", "",  19000
+		DMDId "hsc", "hsb.jpg", " Initials:A  ", " ",  999999
+		vpmtimer.addtimer 8000, "HighScoreDisplayName() '"	
+	End Sub
+
+	Sub EnterHighScoreKey(keycode)
+		If keycode = LeftFlipperKey Then
+			Playsound "fx_Previous"
+			hsCurrentLetter = hsCurrentLetter - 1
+			hsLetter = hsLetter - 1
+			if(hsCurrentLetter = 0) then
+				hsCurrentLetter = len(hsValidLetters)
+			end if
+			HighScoreDisplayName()
+		End If
+
+		If keycode = RightFlipperKey Then
+			Playsound "fx_Next"
+			hsCurrentLetter = hsCurrentLetter + 1
+			hsLetter = hsLetter + 1
+			if(hsCurrentLetter> len(hsValidLetters) ) then
+				hsCurrentLetter = 1
+			end if
+			HighScoreDisplayName()
+		End If
+
+		If keycode = StartGameKey or keycode = PlungerKey Then
+			if(mid(hsValidLetters, hsCurrentLetter, 1) <> "<") then
+				playsound "fx_Enter"
+				hsEnteredDigits(hsCurrentDigit) = mid(hsValidLetters, hsCurrentLetter, 1)
+				hsCurrentDigit = hsCurrentDigit + 1
+				if(hsCurrentDigit = 3) then
+					HighScoreCommitName()
+				else
+					HighScoreDisplayName()
+				end if
+			else
+				playsound "fx_Esc"
+				hsEnteredDigits(hsCurrentDigit) = " "
+				if(hsCurrentDigit> 0) then
+					hsCurrentDigit = hsCurrentDigit - 1
+				end if
+				HighScoreDisplayName()
+			end if
+		end if
+	End Sub
+
+	Dim hsletter
+	hsletter = 1
+
+	Sub HighScoreDisplayName()
+		DMDFlush
+		Dim i, TempBotStr
+
+		TempBotStr = "  "
+		if(hsCurrentDigit> 0) then TempBotStr = TempBotStr & hsEnteredDigits(0)
+		if(hsCurrentDigit> 1) then TempBotStr = TempBotStr & hsEnteredDigits(1)
+		if(hsCurrentDigit> 2) then TempBotStr = TempBotStr & hsEnteredDigits(2)
+
+		if(hsCurrentDigit <> 3) then
+			if(hsLetterFlash <> 0) then
+				TempBotStr = TempBotStr & " "
+			else
+				TempBotStr = TempBotStr & mid(hsValidLetters, hsCurrentLetter, 1)
+			end if
+		end if
+
+		if(hsCurrentDigit <1) then TempBotStr = TempBotStr & hsEnteredDigits(1)
+		if(hsCurrentDigit <2) then TempBotStr = TempBotStr & hsEnteredDigits(2)
+
+		TempBotStr = TempBotStr & "     "
+		Select case hsLetter
+		Case 0
+		DMDId "hsc", "hs.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		hsletter = 27
+		Case 1
+		DMDId "hsc", "hsa.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 2
+		DMDId "hsc", "hsb.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 3
+		DMDId "hsc", "hsc.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 4
+		DMDId "hsc", "hsd.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 5
+		DMDId "hsc", "hse.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 6
+		DMDId "hsc", "hsf.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 7
+		DMDId "hsc", "hsg.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 8
+		DMDId "hsc", "hsh.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 9
+		DMDId "hsc", "hsi.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 10
+		DMDId "hsc", "hsj.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 11
+		DMDId "hsc", "hsk.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 12
+		DMDId "hsc", "hsl.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 13
+		DMDId "hsc", "hsm.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 14
+		DMDId "hsc", "hsn.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 15
+		DMDId "hsc", "hso.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 16
+		DMDId "hsc", "hsp.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 17
+		DMDId "hsc", "hsq.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 18
+		DMDId "hsc", "hsr.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 19
+		DMDId "hsc", "hss.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 20
+		DMDId "hsc", "hst.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 21
+		DMDId "hsc", "hsu.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 22
+		DMDId "hsc", "hsv.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 23
+		DMDId "hsc", "hsw.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 24
+		DMDId "hsc", "hsx.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 25
+		DMDId "hsc", "hsy.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 26
+		DMDId "hsc", "hsz.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 27
+		DMDId "hsc", "hs.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		Case 28
+		DMDId "hsc", "hsa.jpg", " Initials:" & mid(TempBotStr, 3, 5), " ",  999999
+		hsletter = 1
+		End Select
+		DMDMod "hsc", " Initials:" & mid(TempBotStr, 3, 5), " ", 999999
+	End Sub
+
+	Sub HighScoreCommitName()
+		hsbModeActive = False
+		PlaySong "m_end"
+		hsEnteredName = hsEnteredDigits(0) & hsEnteredDigits(1) & hsEnteredDigits(2)
+		if(hsEnteredName = "   ") then
+			hsEnteredName = "YOU"
+		end if
+
+		HighScoreName(3) = hsEnteredName
+		SortHighscore
+		DMDFlush
+		EndOfBallComplete()
+	End Sub
+
+	Sub SortHighscore
+		Dim tmp, tmp2, i, j
+		For i = 0 to 3
+			For j = 0 to 2
+				If HighScore(j) <HighScore(j + 1) Then
+					tmp = HighScore(j + 1)
+					tmp2 = HighScoreName(j + 1)
+					HighScore(j + 1) = HighScore(j)
+					HighScoreName(j + 1) = HighScoreName(j)
+					HighScore(j) = tmp
+					HighScoreName(j) = tmp2
+				End If
+			Next
+		Next
+	End Sub
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  Lighting
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Global Illumination
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Dim OldGiState
+	OldGiState = -1   'start witht the Gi off
+
+	Sub ChangeGi(col) 'changes the gi color
+		Dim bulb
+		For each bulb in aGILights
+			SetLightColor bulb, col, -1
+		Next
+	End Sub
+
+	Sub GIUpdateTimer_Timer
+		Dim tmp, obj
+		tmp = Getballs
+		If UBound(tmp) <> OldGiState Then
+			OldGiState = Ubound(tmp)
+			If UBound(tmp) = 3 Then 'we have 4 captive balls on the table (-1 means no balls, 0 is the first ball, 1 is the second..)
+				'GiOff               ' turn off the gi if no active balls on the table, we could also have used the variable ballsonplayfield.
+			Else
+				'Gion
+			End If
+		End If
+	End Sub
+
+	Sub GiOn
+		DOF 126, DOFOn
+		Dim bulb
+		For each bulb in aGiLights
+			bulb.State = 1
+		Next
+
+	End Sub
+
+	Sub GiLowerOn
+		'DOF 126, DOFOn
+		Dim bulb
+		For each bulb in lowergi
+			bulb.State = 1
+		Next
+
+	End Sub
+
+	Sub GiLowerOff
+		'DOF 126, DOFOn
+		Dim bulb
+		For each bulb in lowergi
+			bulb.State = 0
+		Next
+
+	End Sub
+
+	Sub GiOff
+		DOF 126, DOFOff
+		Dim bulb
+		For each bulb in aGiLights
+			bulb.State = 0
+		Next
+
+	End Sub
+
+	' GI & light sequence effects
+
+	Sub GiEffect(n)
+		Select Case n
+			Case 0 'all off
+				LightSeqGi.Play SeqAlloff
+			Case 1 'all blink
+				LightSeqGi.UpdateInterval = 4
+				LightSeqGi.Play SeqBlinking, , 5, 100
+			Case 2 'random
+				LightSeqGi.UpdateInterval = 10
+				LightSeqGi.Play SeqRandom, 5, , 1000
+			Case 3 'upon
+				LightSeqGi.UpdateInterval = 4
+				LightSeqGi.Play SeqUpOn, 5, 1
+			Case 4 ' left-right-left
+				LightSeqGi.UpdateInterval = 5
+				LightSeqGi.Play SeqLeftOn, 10, 1
+				LightSeqGi.UpdateInterval = 5
+				LightSeqGi.Play SeqRightOn, 10, 1
+		End Select
+	End Sub
+
+	Sub LightEffect(n)
+		Select Case n
+			Case 0 ' all off
+				LightSeqInserts.Play SeqAlloff
+			Case 1 'all blink
+				LightSeqInserts.UpdateInterval = 4
+				LightSeqInserts.Play SeqBlinking, , 5, 100
+			Case 2 'random
+				LightSeqInserts.UpdateInterval = 10
+				LightSeqInserts.Play SeqRandom, 5, , 1000
+			Case 3 'upon
+				LightSeqInserts.UpdateInterval = 4
+				LightSeqInserts.Play SeqUpOn, 10, 1
+			Case 4 ' left-right-left
+				LightSeqInserts.UpdateInterval = 5
+				LightSeqInserts.Play SeqLeftOn, 10, 1
+				LightSeqInserts.UpdateInterval = 5
+				LightSeqInserts.Play SeqRightOn, 10, 1
+			Case 5 'random
+				LightSeqbumper.UpdateInterval = 4
+				LightSeqbumper.Play SeqBlinking, , 5, 10
+			Case 6 'random
+				LightSeqRSling.UpdateInterval = 4
+				LightSeqRSling.Play SeqBlinking, , 5, 6
+			Case 7 'random
+				LightSeqLSling.UpdateInterval = 4
+				LightSeqLSling.Play SeqBlinking, , 5, 6
+			Case 8 'random
+				LightSeqBack.UpdateInterval = 4
+				LightSeqBack.Play SeqBlinking, , 5, 6
+			Case 9 'random
+				LightSeqTruck.UpdateInterval = 4
+				LightSeqTruck.Play SeqBlinking, , 5, 10
+			Case 10 'random
+				LightSeqbarb.UpdateInterval = 4
+				LightSeqbarb.Play SeqBlinking, , 5, 10
+			Case 11 'random
+				LightSeqdice.UpdateInterval = 4
+				LightSeqdice.Play SeqBlinking, , 5, 10
+			Case 12 'random
+				LightSeqlr.UpdateInterval = 4
+				LightSeqlr.Play SeqBlinking, , 5, 10
+			Case 13 'random
+				LightSeqrr.UpdateInterval = 4
+				LightSeqrr.Play SeqBlinking, , 5, 10
+		End Select
+	End Sub
+
+	Dim FEStep, FEffect
+	FEStep = 0
+	FEffect = 0
+
+	Sub FlashEffect(n)
+		Select case n
+			Case 0 ' all off
+				LightSeqFlasher.Play SeqAlloff
+			Case 1 'all blink
+				LightSeqFlasher.UpdateInterval = 4
+				LightSeqFlasher.Play SeqBlinking, , 5, 100
+			Case 2 'random
+				LightSeqFlasher.UpdateInterval = 10
+				LightSeqFlasher.Play SeqRandom, 5, , 1000
+			Case 3 'upon
+				LightSeqFlasher.UpdateInterval = 4
+				LightSeqFlasher.Play SeqUpOn, 10, 1
+			Case 4 ' left-right-left
+				LightSeqFlasher.UpdateInterval = 5
+				LightSeqFlasher.Play SeqLeftOn, 10, 1
+				LightSeqFlasher.UpdateInterval = 5
+				LightSeqFlasher.Play SeqRightOn, 10, 1
+		End Select
+	End Sub
+
+
+	lrflashtime.enabled = 0
+	Dim letsflash
+	Sub lrflashnow
+		lrflashtime.enabled = 1
+	End Sub
+
+	Sub lrflashtime_Timer 
+		letsflash = letsflash + 1
+		Select Case letsflash
+		Case 0
+			'FlasherLeftRed.opacity = 0
+		Case 1
+			'FlasherLeftRed.opacity = 100
+		Case 2
+			'FlasherLeftRed.opacity = 0
+		Case 3
+			'FlasherLeftRed.opacity = 100
+		Case 4
+			'FlasherLeftRed.opacity = 0
+		Case 5
+			'FlasherLeftRed.opacity = 100
+		Case 6
+			'FlasherLeftRed.opacity = 0
+			lrflashtime.Enabled = False
+			letsflash = 0
+		End Select
+	End Sub
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> FlashForMs will blink light or a flasher for TotalPeriod(ms) at rate of BlinkPeriod(ms)
+	'-> When TotalPeriod done, light or flasher will be set to FinalState value where
+	'-> Final State values are:   0=Off, 1=On, 2=Return to previous State
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+
+	Sub FlashForMs(MyLight, TotalPeriod, BlinkPeriod, FinalState)
+
+		If TypeName(MyLight) = "Light" Then
+
+			If FinalState = 2 Then
+				FinalState = MyLight.State 'Keep the current light state
+			End If
+			MyLight.BlinkInterval = BlinkPeriod
+			MyLight.Duration 2, TotalPeriod, FinalState
+		ElseIf TypeName(MyLight) = "Flasher" Then
+
+			Dim steps
+
+			' Store all blink information
+			steps = Int(TotalPeriod / BlinkPeriod + .5) 'Number of ON/OFF steps to perform
+			If FinalState = 2 Then                      'Keep the current flasher state
+				FinalState = ABS(MyLight.Visible)
+			End If
+			MyLight.UserValue = steps * 10 + FinalState 'Store # of blinks, and final state
+
+			' Start blink timer and create timer subroutine
+			MyLight.TimerInterval = BlinkPeriod
+			MyLight.TimerEnabled = 0
+			MyLight.TimerEnabled = 1
+			ExecuteGlobal "Sub " & MyLight.Name & "_Timer:" & "Dim tmp, steps, fstate:tmp=me.UserValue:fstate = tmp MOD 10:steps= tmp\10 -1:Me.Visible = steps MOD 2:me.UserValue = steps *10 + fstate:If Steps = 0 then Me.Visible = fstate:Me.TimerEnabled=0:End if:End Sub"
+		End If
+	End Sub
+
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Color LEDs - 10 Colors
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Dim red, orange, amber, yellow, darkgreen, green, blue, darkblue, purple, white
+
+	red = 10
+	orange = 9
+	amber = 8
+	yellow = 7
+	darkgreen = 6
+	green = 5
+	blue = 4
+	darkblue = 3
+	purple = 2
+	white = 1
+
+	Sub SetLightColor(n, col, stat)
+		Select Case col
+			Case red
+				n.color = RGB(18, 0, 0)
+				n.colorfull = RGB(255, 0, 0)
+			Case orange
+				n.color = RGB(18, 3, 0)
+				n.colorfull = RGB(255, 64, 0)
+			Case amber
+				n.color = RGB(193, 49, 0)
+				n.colorfull = RGB(255, 153, 0)
+			Case yellow
+				n.color = RGB(18, 18, 0)
+				n.colorfull = RGB(255, 255, 0)
+			Case darkgreen
+				n.color = RGB(0, 8, 0)
+				n.colorfull = RGB(0, 64, 0)
+			Case green
+				n.color = RGB(0, 18, 0)
+				n.colorfull = RGB(0, 255, 0)
+			Case blue
+				n.color = RGB(0, 18, 18)
+				n.colorfull = RGB(0, 255, 255)
+			Case darkblue
+				n.color = RGB(0, 8, 8)
+				n.colorfull = RGB(0, 64, 64)
+			Case purple
+				n.color = RGB(128, 0, 128)
+				n.colorfull = RGB(255, 0, 255)
+			Case white
+				n.color = RGB(255, 252, 224)
+				n.colorfull = RGB(193, 91, 0)
+			Case white
+				n.color = RGB(255, 252, 224)
+				n.colorfull = RGB(193, 91, 0)
+		End Select
+		If stat <> -1 Then
+			n.State = 0
+			n.State = stat
+		End If
+	End Sub
+
+	Sub ResetAllLightsColor ' Called at a new game
+		'shoot again
+		SetLightColor LightShootAgain, red, -1
+	End Sub
+
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	'-> Rainbow Light Seguence
+	'->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Dim RGBStep, RGBFactor, rRed, rGreen, rBlue, RainbowLights
+
+	Sub StartRainbow(n)
+		set RainbowLights = n
+		RGBStep = 0
+		RGBFactor = 5
+		rRed = 255
+		rGreen = 0
+		rBlue = 0
+		RainbowTimer.Enabled = 1
+	End Sub
+
+	Sub StopRainbow()
+		Dim obj
+		RainbowTimer.Enabled = 0
+		RainbowTimer.Enabled = 0
+			For each obj in RainbowLights
+				SetLightColor obj, "white", 0
+			Next
+	End Sub
+
+	Sub RainbowTimer_Timer 'rainbow led light color changing
+		Dim obj
+		Select Case RGBStep
+			Case 0 'Green
+				rGreen = rGreen + RGBFactor
+				If rGreen > 255 then
+					rGreen = 255
+					RGBStep = 1
+				End If
+			Case 1 'Red
+				rRed = rRed - RGBFactor
+				If rRed < 0 then
+					rRed = 0
+					RGBStep = 2
+				End If
+			Case 2 'Blue
+				rBlue = rBlue + RGBFactor
+				If rBlue > 255 then
+					rBlue = 255
+					RGBStep = 3
+				End If
+			Case 3 'Green
+				rGreen = rGreen - RGBFactor
+				If rGreen < 0 then
+					rGreen = 0
+					RGBStep = 4
+				End If
+			Case 4 'Red
+				rRed = rRed + RGBFactor
+				If rRed > 255 then
+					rRed = 255
+					RGBStep = 5
+				End If
+			Case 5 'Blue
+				rBlue = rBlue - RGBFactor
+				If rBlue < 0 then
+					rBlue = 0
+					RGBStep = 0
+				End If
+		End Select
+			For each obj in RainbowLights
+				obj.color = RGB(rRed \ 10, rGreen \ 10, rBlue \ 10)
+				obj.colorfull = RGB(rRed, rGreen, rBlue)
+			Next
+	End Sub
+
+
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  Attract Mode
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+	Sub ShowTableInfo
+		dmdintroloop
+	End Sub
+
+	Dim introposition
+	introposition = 0
+
+	Sub dmdattract_timer
+		If NOT UltraDMD.IsRendering Then
+		dmdintroloop
+		End If
+	End Sub
+
+	Sub dmdintroloop
+		DMDFlush
+		introposition = introposition + 1
+		Select Case introposition
+		Case 1
+			Dim i
+			If Score(1) Then
+				DMD "black.png", "PLAYER 1", Score(1), 3000
+			Else
+			introposition = 4
+			dmdintroloop
+			End If
+		Case 2
+			If Score(2) Then
+				DMD "black.png", "PLAYER 2", Score(2), 3000
+			Else
+			introposition = 4
+			dmdintroloop
+			End If
+		Case 3
+			If Score(3) Then
+				DMD "black.png", "PLAYER 3", Score(3), 3000
+			Else
+			introposition = 4
+			dmdintroloop
+			End If
+		Case 4
+			If Score(4) Then
+				DMD "black.png", "PLAYER 4", Score(4), 3000
+			Else
+			introposition = 4
+			dmdintroloop
+			End If
+		Case 5
+			'coins or freeplay
+			If gamemodecurrent = "True" Then
+				DMD "black.png", " ", "FREE PLAY",  2000
+			Else
+				If Credits > 0 Then
+					DMD "black.png", "CREDITS " &credits, "PRESS START",  2000
+					DOF 140, DOFOn
+				Else
+					DMD "black.png", "CREDITS " &credits, "INSERT COIN",  2000
+					DOF 140, DOFOff
+				End If
+			End If
+		Case 6
+			DMD "introconfig.png", "", "",  5000
+		Case 7
+			DMD "intro-49.wmv", "", "",  48000
+		Case 8
+			DMD "black.png", "Grand Champion", " " & HighScoreName(0) & " " & FormatNumber(HighScore(0),0,,, -1), 3000
+		Case 9
+			DMD "black.png", "HIGHSCORE 1", "" & HighScoreName(1) & " " & FormatNumber(HighScore(1),0,,, -1), 3000
+		Case 10
+			DMD "black.png", "HIGHSCORE 2", "" & HighScoreName(2) & " " & FormatNumber(HighScore(2),0,,, -1), 3000
+		Case 11
+			DMD "black.png", "HIGHSCORE 3", "" & HighScoreName(3) & " " & FormatNumber(HighScore(3),0,,, -1), 3000
+			introposition = 0
+		End Select
+	End Sub
+
+	Sub StartAttractMode()
+		bAttractMode = True
+		UltraDMDTimer.Enabled = 1
+		StartLightSeq
+		StartRainbow aLights
+		inconfig = false
+		dmdattract.Enabled = 1
+	End Sub
+
+	Sub StopAttractMode()
+		bAttractMode = False
+		DMDScoreNow
+		LightSeqAttract.StopPlay
+		LightSeqFlasher.StopPlay
+		StopRainbow
+		ResetAllLightsColor
+		dmdattract.Enabled = 0
+	End Sub
+
+	Sub StartLightSeq()
+		'lights sequences
+		LightSeqaxmas.UpdateInterval = 150
+		LightSeqaxmas.Play SeqRandom, 10, , 50000
+		LightSeqFlasher.UpdateInterval = 150
+		LightSeqFlasher.Play SeqRandom, 10, , 50000
+		LightSeqAttract.UpdateInterval = 25
+		LightSeqAttract.Play SeqBlinking, , 5, 150
+		LightSeqAttract.Play SeqRandom, 40, , 4000
+		LightSeqAttract.Play SeqAllOff
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 50, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqCircleOutOn, 15, 2
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 25, 1
+		LightSeqAttract.UpdateInterval = 10
+		LightSeqAttract.Play SeqCircleOutOn, 15, 3
+		LightSeqAttract.UpdateInterval = 5
+		LightSeqAttract.Play SeqRightOn, 50, 1
+		LightSeqAttract.UpdateInterval = 5
+		LightSeqAttract.Play SeqLeftOn, 50, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 50, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 50, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 40, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 40, 1
+		LightSeqAttract.UpdateInterval = 10
+		LightSeqAttract.Play SeqRightOn, 30, 1
+		LightSeqAttract.UpdateInterval = 10
+		LightSeqAttract.Play SeqLeftOn, 30, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 15, 1
+		LightSeqAttract.UpdateInterval = 10
+		LightSeqAttract.Play SeqCircleOutOn, 15, 3
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 25, 1
+		LightSeqAttract.UpdateInterval = 5
+		LightSeqAttract.Play SeqStripe1VertOn, 50, 2
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqCircleOutOn, 15, 2
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqStripe1VertOn, 50, 3
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqCircleOutOn, 15, 2
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqStripe2VertOn, 50, 3
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 25, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqStripe1VertOn, 25, 3
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqStripe2VertOn, 25, 3
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqUpOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqDownOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqRightOn, 15, 1
+		LightSeqAttract.UpdateInterval = 8
+		LightSeqAttract.Play SeqLeftOn, 15, 1
+	End Sub
+
+	Sub LightSeqAttract_PlayDone()
+		StartLightSeq()
+	End Sub
+
+	Sub LightSeqTilt_PlayDone()
+		LightSeqTilt.Play SeqAllOff
+	End Sub
+
+	Sub LightSeqSkillshot_PlayDone()
+		LightSeqSkillshot.Play SeqAllOff
+	End Sub
+
+
+
+
+' END PLATFORM SCRIPT
+'
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+'
+' START TABLE THEME SCRIPTS
+
+
+
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'  B2S Lighting Functions
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+'/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/ \/
+'\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\ /\
+' X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  X  
+
+
+
+	 '->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+	 '-> B2S Light Show
+	 '-> cause i mean everyone loves a good light show
+	 '-> 1 = 
+	 '-> 2 =  
+	 '-> 3 =  
+	 '-> 4 = 
+	 '-> 5 = 
+	 '-> 6 = 
+	 '-> 7 = 
+	 '->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->->
+
+	Dim b2sstep
+	b2sstep = 0
+	b2sflash.enabled = 0
+	Dim b2satm
+
+	Sub startB2S(aB2S)
+		b2sflash.enabled = 1
+		b2satm = ab2s
+	End Sub
+
+	Sub b2sflash_timer
+		If B2SOn Then
+		b2sstep = b2sstep + 1
+		Select Case b2sstep
+			Case 0
+			Controller.B2SSetData b2satm, 0
+			Case 1
+			Controller.B2SSetData b2satm, 1
+			Case 2
+			Controller.B2SSetData b2satm, 0
+			Case 3
+			Controller.B2SSetData b2satm, 1
+			Case 4
+			Controller.B2SSetData b2satm, 0
+			Case 5
+			Controller.B2SSetData b2satm, 1
+			Case 6
+			Controller.B2SSetData b2satm, 0
+			Case 7
+			Controller.B2SSetData b2satm, 1
+			Case 8
+			Controller.B2SSetData b2satm, 0
+			b2sstep = 0
+			b2sflash.enabled = 0
+		End Select
+		End If
+	End Sub
